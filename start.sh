@@ -2,6 +2,6 @@
 
 udevadm control --reload
 
-libcamera-hello --list-cameras -n -v
+rpicam-hello --list-cameras -n -v
 
 sleep infinity

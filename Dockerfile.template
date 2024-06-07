@@ -1,12 +1,46 @@
-FROM balenalib/%%BALENA_MACHINE_NAME%%-debian:bullseye
+# FROM balenalib/%%BALENA_MACHINE_NAME%%-debian:bookworm
+FROM balenalib/raspberrypi5-debian-python:latest-bookworm
 
 RUN install_packages \
-    libcamera-dev \
-    libcamera-apps-lite \
-    python3 \
-    v4l-utils
+    # python3 \
+    python3-pkgconfig \
+    python3-pip \
+    python3-jinja2 \
+    git \
+    build-essential \
+    gcc \
+    cmake \
+    meson \
+    pkg-config \
+    v4l-utils \
+    libboost-program-options-dev \
+    libdrm-dev libexif-dev libjpeg-dev libpng-dev \
+    ninja-build \
+    libboost-dev \
+    libgnutls28-dev openssl libtiff5-dev pybind11-dev \
+    qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5 \
+    python3-yaml python3-ply \
+    libglib2.0-dev libgstreamer-plugins-base1.0-dev
 
+
+# INFO: build libcamera
+RUN git clone https://github.com/raspberrypi/libcamera.git /opt/libcamera
+WORKDIR /opt/libcamera
+RUN meson setup build --buildtype=release -Dpipelines=rpi/vc4,rpi/pisp -Dipas=rpi/vc4,rpi/pisp -Dv4l2=true -Dgstreamer=enabled -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=disabled -Ddocumentation=disabled -Dpycamera=enabled
+RUN ninja -C build
+RUN ninja -C build install
+
+# INFO: build rpicam-apps
+RUN git clone https://github.com/raspberrypi/rpicam-apps.git /opt/rpicam-apps
+WORKDIR /opt/rpicam-apps
+RUN meson setup build -Denable_libav=disabled -Denable_drm=enabled -Denable_egl=disabled -Denable_qt=disabled -Denable_opencv=disabled -Denable_tflite=disabled
+RUN meson compile -C build
+RUN meson install -C build
+
+# INFO: application setup ...
 WORKDIR /usr/src/app
+RUN export LD_LIBRARY_PATH=/usr/local/lib
+RUN ldconfig
 
 COPY start.sh ./
 
